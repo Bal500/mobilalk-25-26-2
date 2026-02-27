@@ -428,7 +428,7 @@ export default function DashboardPage() {
                             onClick={() => window.open(event.meeting_link, '_blank')}
                             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-sm font-bold transition-all w-full sm:w-auto"
                           >
-                            <span className="text-lg">📹</span> Videóhívás Indítása
+                            <span className="text-lg">📹</span> Csatlakozás a meetinghez
                           </button>
                         </div>
                       )}
@@ -473,7 +473,7 @@ export default function DashboardPage() {
       {/* ÚJ ÜTKÖZÉS MODÁL */}
       <ConfirmModal 
         isOpen={conflictPayload !== null} 
-        title="⚠️ Időpont ütközés!" 
+        title="💥 Időpont ütközés!" 
         message={conflictMessage} 
         confirmLabel="Mentés mindenképp" 
         onConfirm={() => executeSave(conflictPayload)} 
