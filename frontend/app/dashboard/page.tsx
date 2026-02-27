@@ -23,7 +23,7 @@ export default function DashboardPage() {
   const [viewedUser, setViewedUser] = useState<string | null>(null);
 
   const [events, setEvents] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'list' | 'public'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'calendar' | 'public'>('list');
   const [publicEvents, setPublicEvents] = useState<any[]>([]);
 
   const [editId, setEditId] = useState<number | null>(null);
@@ -35,6 +35,9 @@ export default function DashboardPage() {
   const [isMeeting, setIsMeeting] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [meetingLink, setMeetingLink] = useState(""); 
+
+  const [currentCalDate, setCurrentCalDate] = useState(new Date());
+  const [selectedCalDate, setSelectedCalDate] = useState<Date>(new Date());
 
   const [conflictPayload, setConflictPayload] = useState<any | null>(null);
   const [conflictMessage, setConflictMessage] = useState<React.ReactNode>("");
@@ -243,6 +246,37 @@ export default function DashboardPage() {
     return event.participants ? event.participants.split(',').map((x:string)=>x.trim()).filter(Boolean) : [];
   };
 
+  // NAPTÁR FUNKCIÓK
+  const monthNames = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+  const dayNames = ["H", "K", "Sze", "Cs", "P", "Szo", "V"];
+
+  const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    let day = new Date(year, month, 1).getDay();
+    return day === 0 ? 6 : day - 1; 
+  };
+
+  const nextMonth = () => setCurrentCalDate(new Date(currentCalDate.getFullYear(), currentCalDate.getMonth() + 1, 1));
+  const prevMonth = () => setCurrentCalDate(new Date(currentCalDate.getFullYear(), currentCalDate.getMonth() - 1, 1));
+
+  const daysInMonth = getDaysInMonth(currentCalDate.getFullYear(), currentCalDate.getMonth());
+  const firstDay = getFirstDayOfMonth(currentCalDate.getFullYear(), currentCalDate.getMonth());
+
+  const getEventsForDay = (day: number, month: number, year: number) => {
+    return events.filter(ev => {
+      const evStart = new Date(ev.start_date);
+      return evStart.getFullYear() === year && evStart.getMonth() === month && evStart.getDate() === day;
+    });
+  };
+
+  const isSameDay = (d1: Date, d2: Date) => 
+    d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+
+  const selectedDayEvents = events.filter(ev => {
+    const evStart = new Date(ev.start_date);
+    return isSameDay(evStart, selectedCalDate);
+  });
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-gray-100 font-sans p-4 md:p-8 relative">
       
@@ -340,14 +374,15 @@ export default function DashboardPage() {
         <div className="xl:col-span-2 flex flex-col gap-6">
           
           {/* TAB VÁLTÓ */}
-          <div className="bg-[#121212] p-1.5 rounded-2xl border border-zinc-800/60 flex gap-1.5 w-full shrink-0 shadow-sm">
-            <button onClick={() => setActiveTab('list')} className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'list' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>📋 Eseményeim</button>
-            <button onClick={() => setActiveTab('public')} className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'public' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>🌍 Publikus</button>
+          <div className="bg-[#121212] p-1.5 rounded-2xl border border-zinc-800/60 flex gap-1.5 w-full shrink-0 shadow-sm overflow-x-auto snap-x hide-scrollbar">
+            <button onClick={() => setActiveTab('list')} className={`flex-1 min-w-[100px] py-3 rounded-xl text-sm font-bold transition-all snap-start ${activeTab === 'list' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>📋 Lista</button>
+            <button onClick={() => setActiveTab('calendar')} className={`flex-1 min-w-[100px] py-3 rounded-xl text-sm font-bold transition-all snap-start ${activeTab === 'calendar' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>📅 Naptár</button>
+            <button onClick={() => setActiveTab('public')} className={`flex-1 min-w-[100px] py-3 rounded-xl text-sm font-bold transition-all snap-start ${activeTab === 'public' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>🌍 Publikus</button>
           </div>
 
           {/* LISTA TARTALOM */}
           <div className="space-y-4 pb-10">
-            {activeTab === 'list' ? (
+            {activeTab === 'list' && (
               <>
                 {events.length === 0 && <div className="text-center py-16 text-zinc-500 border border-dashed border-zinc-800/60 rounded-3xl bg-[#121212]/50">Nincs megjeleníthető esemény.</div>}
                 {events.map((event) => (
@@ -383,7 +418,7 @@ export default function DashboardPage() {
                             onClick={() => window.open(event.meeting_link, '_blank')}
                             className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-sm font-bold transition-all w-full sm:w-auto"
                           >
-                            <span className="text-lg">📹</span> Videóhívás Indítása
+                            <span className="text-lg">📹</span> Meeting indítása
                           </button>
                         </div>
                       )}
@@ -399,7 +434,141 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </>
-            ) : (
+            )}
+
+            {/* ----------------- GOOGLE CALENDAR SÁVOS NAPTÁR NÉZET ----------------- */}
+            {activeTab === 'calendar' && (
+              <div className="flex flex-col gap-4 animate-in fade-in duration-300">
+                
+                {/* 1. Havi választó Grid (Kicsinyítve a képernyő tetején) */}
+                <div className="bg-[#121212] p-4 md:p-5 rounded-3xl border border-zinc-800/60 shadow-sm">
+                  <div className="flex justify-between items-center mb-4">
+                    <button onClick={prevMonth} className="p-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <h2 className="text-base md:text-lg font-bold text-white tracking-wide">
+                      {currentCalDate.getFullYear()}. {monthNames[currentCalDate.getMonth()]}
+                    </h2>
+                    <button onClick={nextMonth} className="p-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1 mb-1">
+                    {dayNames.map(day => (<div key={day} className="text-center text-[10px] font-bold text-zinc-600 uppercase pb-1">{day}</div>))}
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1">
+                    {Array.from({ length: firstDay }).map((_, i) => (<div key={`empty-${i}`} className="h-10 rounded-lg bg-transparent"></div>))}
+                    
+                    {Array.from({ length: daysInMonth }).map((_, i) => {
+                      const dayNumber = i + 1;
+                      const thisDate = new Date(currentCalDate.getFullYear(), currentCalDate.getMonth(), dayNumber);
+                      const isSelected = isSameDay(thisDate, selectedCalDate);
+                      const isToday = isSameDay(thisDate, new Date());
+                      const dayEvents = getEventsForDay(dayNumber, currentCalDate.getMonth(), currentCalDate.getFullYear());
+
+                      return (
+                        <div 
+                          key={dayNumber} 
+                          onClick={() => setSelectedCalDate(thisDate)}
+                          className={`h-10 md:h-12 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all border
+                            ${isSelected ? 'bg-blue-600 border-blue-500 shadow-md' : 'bg-black/30 hover:bg-zinc-800 border-zinc-800/50'}
+                            ${isToday && !isSelected ? 'border-zinc-500 text-blue-400' : ''}
+                          `}
+                        >
+                          <span className={`text-xs md:text-sm font-bold ${isSelected ? 'text-white' : ''}`}>{dayNumber}</span>
+                          <div className="flex gap-0.5 mt-0.5">
+                            {dayEvents.length > 0 && <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-blue-500'}`}></div>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. A Napi Idővonal (Timeline - A SÁVOK) */}
+                <div className="bg-[#121212] rounded-3xl border border-zinc-800/60 shadow-sm overflow-hidden flex flex-col">
+                  
+                  {/* Timeline Fejléc */}
+                  <div className="p-4 md:p-5 border-b border-zinc-800/60 bg-zinc-900/30">
+                    <h3 className="text-white font-bold text-base flex items-center gap-2">
+                      <span className="text-lg">🕘</span> 
+                      {selectedCalDate.toLocaleDateString('hu-HU', { month: 'long', day: 'numeric', weekday: 'long'})}
+                    </h3>
+                  </div>
+
+                  {/* Görgethető Idővonal (24 óra) */}
+                  <div className="relative h-[60vh] md:h-[500px] overflow-y-auto hide-scrollbar" id="timeline-container">
+                    {/* A belső tartalom magassága: 24 óra * 60 pixel = 1440px */}
+                    <div className="relative h-[1440px] w-full bg-[#121212]">
+                      
+                      {/* Vízszintes óra vonalak */}
+                      {Array.from({ length: 24 }).map((_, i) => (
+                        <div key={`line-${i}`} className="absolute w-full flex items-start border-b border-zinc-800/50" style={{ top: `${i * 60}px`, height: '60px' }}>
+                          <span className="text-[10px] md:text-xs text-zinc-500 w-12 text-right pr-2 -mt-[9px] bg-[#121212] relative z-10 font-medium">
+                            {i}:00
+                          </span>
+                        </div>
+                      ))}
+
+                      {/* Események sávjai */}
+                      <div className="absolute top-0 left-12 right-0 bottom-0">
+                        {selectedDayEvents.map((ev, idx) => {
+                          const start = new Date(ev.start_date);
+                          const end = new Date(ev.end_date);
+                          const dayStart = new Date(selectedCalDate); dayStart.setHours(0,0,0,0);
+                          const dayEnd = new Date(selectedCalDate); dayEnd.setHours(23,59,59,999);
+
+                          const actualStart = start < dayStart ? dayStart : start;
+                          const actualEnd = end > dayEnd ? dayEnd : end;
+
+                          const startMin = actualStart.getHours() * 60 + actualStart.getMinutes();
+                          const durationMin = Math.max((actualEnd.getTime() - actualStart.getTime()) / 60000, 20);
+
+                          const leftOffset = (idx % 4) * 8; 
+
+                          return (
+                            <div
+                              key={ev.id}
+                              onClick={() => { setActiveTab('list'); handleEditClick(ev); }}
+                              className={`absolute rounded-xl p-2 text-xs overflow-hidden cursor-pointer shadow-lg backdrop-blur-md border transition-all hover:z-[60] hover:scale-[1.02]
+                                ${ev.is_meeting ? 'bg-red-500/80 border-red-500/50 text-white' : 'bg-blue-600/80 border-blue-500/50 text-white'}
+                              `}
+                              style={{
+                                top: `${startMin}px`,
+                                height: `${durationMin}px`,
+                                left: `${4 + leftOffset}px`,
+                                right: '8px',
+                                zIndex: 20 + idx
+                              }}
+                            >
+                              <div className="font-bold text-sm truncate leading-tight">{ev.title}</div>
+                              <div className="text-white/80 font-medium mt-0.5 text-[10px] truncate">
+                                {start.toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'})} - {end.toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'})}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      
+                      {/* Jelenlegi Idő Piros Vonala (Csak a mai napon mutatjuk) */}
+                      {isSameDay(selectedCalDate, new Date()) && (
+                        <div
+                          className="absolute left-12 right-0 border-b-2 border-red-500 z-50 flex items-center shadow-[0_0_10px_rgba(239,68,68,0.5)]"
+                          style={{ top: `${new Date().getHours() * 60 + new Date().getMinutes()}px` }}
+                        >
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-500 absolute -left-1.5 shadow-sm"></div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ----------------- PUBLIKUS NÉZET ----------------- */}
+            {activeTab === 'public' && (
               <>
                 {publicEvents.length === 0 && <div className="text-center py-16 text-zinc-500 border border-dashed border-zinc-800/60 rounded-3xl bg-[#121212]/50">Nincs publikus esemény.</div>}
                 {publicEvents.map((event) => (
@@ -483,7 +652,7 @@ export default function DashboardPage() {
       {/* ADATBÁZIS NULLÁZÁSA MODÁL */}
       <ConfirmModal 
         isOpen={showResetModal} 
-        title="🔥 Adatbázis Nullázása" 
+        title="🔥 Adatbázis nullázása" 
         message={
           <div className="flex flex-col gap-3">
             <span className="text-red-500 font-extrabold text-lg">VIGYÁZAT!</span>
@@ -500,7 +669,7 @@ export default function DashboardPage() {
       {showPasswordModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#121212] p-8 rounded-3xl border border-zinc-800 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-bold text-white mb-6 text-center">Jelszó Módosítása</h3>
+            <h3 className="text-2xl font-bold text-white mb-6 text-center">Jelszó módosítása</h3>
             <form onSubmit={handleChangePassword} className="space-y-4">
               <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} className="w-full p-4 bg-black border border-zinc-800 rounded-xl text-white focus:border-blue-500 focus:outline-none transition-colors" placeholder="Új jelszó..." required />
               <button type="submit" className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition-transform active:scale-95">Mentés</button>
