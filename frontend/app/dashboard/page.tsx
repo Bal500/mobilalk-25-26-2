@@ -354,6 +354,8 @@ export default function DashboardPage() {
         <div className="relative">
           <button 
             onClick={() => setIsMenuOpen(!isMenuOpen)} 
+            aria-label="Főmenü megnyitása"
+            aria-expanded={isMenuOpen}
             className="p-2.5 bg-zinc-900 border border-zinc-800 rounded-xl hover:bg-zinc-800 hover:border-zinc-700 text-white transition-all shadow-sm"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -366,18 +368,18 @@ export default function DashboardPage() {
               {userRole === "admin" && (
                 <>
                   <button onClick={() => { setShowUserModal(true); setIsMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors border-b border-zinc-800/50 flex items-center gap-2">
-                    <span>👤</span> Új felhasználó
+                    <span aria-hidden="true">👤</span> Új felhasználó
                   </button>
                   <button onClick={() => { setShowResetModal(true); setIsMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-sm text-red-500 hover:bg-zinc-800 transition-colors border-b border-zinc-800/50 font-bold flex items-center gap-2">
-                    <span>🔥</span> Adatbázis nullázása
+                    <span aria-hidden="true">🔥</span> Adatbázis nullázása
                   </button>
                 </>
               )}
               <button onClick={() => { setShowPasswordModal(true); setIsMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors border-b border-zinc-800/50 flex items-center gap-2">
-                <span>🔑</span> Jelszó csere
+                <span aria-hidden="true">🔑</span> Jelszó csere
               </button>
               <button onClick={handleLogout} className="w-full text-left px-5 py-3.5 text-sm text-red-400 hover:bg-zinc-800 transition-colors font-bold flex items-center gap-2">
-                <span>🚪</span> Kilépés
+                <span aria-hidden="true">🚪</span> Kilépés
               </button>
             </div>
           )}
@@ -396,15 +398,15 @@ export default function DashboardPage() {
           {!viewedUser ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <h2 className="text-xl font-bold mb-5 text-white flex justify-between items-center">
-                {editId ? "✏️ Szerkesztés" : "Új esemény"}
+                {editId ? <><span aria-hidden="true">✏️</span> Szerkesztés</> : "Új esemény"}
                 {editId && <span className="text-xs bg-yellow-500/10 text-yellow-500 px-3 py-1 rounded-full border border-yellow-500/20 font-semibold">Aktív</span>}
               </h2>
-              <input value={newTitle} onChange={e => setNewTitle(e.target.value)} className="w-full p-3.5 bg-black border border-zinc-800 rounded-xl text-white text-sm focus:border-blue-500 focus:outline-none transition-colors" placeholder="Esemény megnevezése" required />
+              <input value={newTitle} onChange={e => setNewTitle(e.target.value)} aria-label="Esemény megnevezése" className="w-full p-3.5 bg-black border border-zinc-800 rounded-xl text-white text-sm focus:border-blue-500 focus:outline-none transition-colors" placeholder="Esemény megnevezése" required />
               <div className="grid grid-cols-2 gap-3">
-                <input type="datetime-local" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full p-3.5 bg-black border border-zinc-800 rounded-xl text-zinc-300 text-xs md:text-sm [color-scheme:dark] focus:border-blue-500 focus:outline-none transition-colors" required />
-                <input type="datetime-local" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full p-3.5 bg-black border border-zinc-800 rounded-xl text-zinc-300 text-xs md:text-sm [color-scheme:dark] focus:border-blue-500 focus:outline-none transition-colors" required />
+                <input type="datetime-local" value={startDate} onChange={e => setStartDate(e.target.value)} aria-label="Kezdés időpontja" className="w-full p-3.5 bg-black border border-zinc-800 rounded-xl text-zinc-300 text-xs md:text-sm [color-scheme:dark] focus:border-blue-500 focus:outline-none transition-colors" required />
+                <input type="datetime-local" value={endDate} onChange={e => setEndDate(e.target.value)} aria-label="Befejezés időpontja" className="w-full p-3.5 bg-black border border-zinc-800 rounded-xl text-zinc-300 text-xs md:text-sm [color-scheme:dark] focus:border-blue-500 focus:outline-none transition-colors" required />
               </div>
-              <input value={newParticipants} onChange={e => setNewParticipants(e.target.value)} className="w-full p-3.5 bg-black border border-zinc-800 rounded-xl text-white text-sm focus:border-blue-500 focus:outline-none transition-colors" placeholder="További résztvevők (pl. Anna, Gábor)" />
+              <input value={newParticipants} onChange={e => setNewParticipants(e.target.value)} aria-label="További résztvevők" className="w-full p-3.5 bg-black border border-zinc-800 rounded-xl text-white text-sm focus:border-blue-500 focus:outline-none transition-colors" placeholder="További résztvevők (pl. Anna, Gábor)" />
               
               <div className="flex gap-6 pt-2 pb-2 px-2">
                 <label className="flex items-center gap-2.5 cursor-pointer text-sm text-zinc-300 font-medium select-none">
@@ -415,11 +417,12 @@ export default function DashboardPage() {
                 </label>
               </div>
               
-              <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} className="w-full p-3.5 bg-black border border-zinc-800 rounded-xl text-white h-24 text-sm focus:border-blue-500 focus:outline-none transition-colors resize-none" placeholder="Leírás..." />
+              <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} aria-label="Leírás" className="w-full p-3.5 bg-black border border-zinc-800 rounded-xl text-white h-24 text-sm focus:border-blue-500 focus:outline-none transition-colors resize-none" placeholder="Leírás..." />
               
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-1 text-zinc-300">Kategória</label>
+                <label htmlFor="category-select" className="block text-sm font-medium mb-1 text-zinc-300">Kategória</label>
                 <select
+                  id="category-select"
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
                   className="w-full p-3.5 bg-black border border-zinc-800 rounded-xl text-white text-sm focus:border-blue-500 focus:outline-none transition-colors"
@@ -432,8 +435,9 @@ export default function DashboardPage() {
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-1 text-zinc-300">Helyszín</label>
+                <label htmlFor="location-select" className="block text-sm font-medium mb-1 text-zinc-300">Helyszín</label>
                 <select
+                  id="location-select"
                   value={locationId}
                   onChange={(e) => setLocationId(e.target.value)}
                   className="w-full p-3.5 bg-black border border-zinc-800 rounded-xl text-white text-sm focus:border-blue-500 focus:outline-none transition-colors"
@@ -454,7 +458,7 @@ export default function DashboardPage() {
             </form>
           ) : (
             <div className="text-center py-12">
-              <div className="w-20 h-20 bg-zinc-800/50 rounded-full flex items-center justify-center mx-auto mb-5 text-4xl border border-zinc-700/50 shadow-inner">📅</div>
+              <div aria-hidden="true" className="w-20 h-20 bg-zinc-800/50 rounded-full flex items-center justify-center mx-auto mb-5 text-4xl border border-zinc-700/50 shadow-inner">📅</div>
               <h3 className="text-xl font-bold text-white mb-1">{viewedUser}</h3>
               <p className="text-zinc-500 text-sm mb-8">naptárát látod jelenleg.</p>
               <button onClick={() => setViewedUser(null)} className="w-full py-3.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl font-bold hover:bg-blue-500/20 transition-colors">← Vissza a sajátomhoz</button>
@@ -466,10 +470,10 @@ export default function DashboardPage() {
         <div className="xl:col-span-2 flex flex-col gap-6">
           
           {/* TAB VÁLTÓ */}
-          <div className="bg-[#121212] p-1.5 rounded-2xl border border-zinc-800/60 flex gap-1.5 w-full shrink-0 shadow-sm overflow-x-auto snap-x hide-scrollbar">
-            <button onClick={() => setActiveTab('list')} className={`flex-1 min-w-[100px] py-3 rounded-xl text-sm font-bold transition-all snap-start ${activeTab === 'list' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>📋 Lista</button>
-            <button onClick={() => setActiveTab('calendar')} className={`flex-1 min-w-[100px] py-3 rounded-xl text-sm font-bold transition-all snap-start ${activeTab === 'calendar' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>📅 Naptár</button>
-            <button onClick={() => setActiveTab('public')} className={`flex-1 min-w-[100px] py-3 rounded-xl text-sm font-bold transition-all snap-start ${activeTab === 'public' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>🌍 Publikus</button>
+          <div role="tablist" className="bg-[#121212] p-1.5 rounded-2xl border border-zinc-800/60 flex gap-1.5 w-full shrink-0 shadow-sm overflow-x-auto snap-x hide-scrollbar">
+            <button role="tab" aria-selected={activeTab === 'list'} onClick={() => setActiveTab('list')} className={`flex-1 min-w-[100px] py-3 rounded-xl text-sm font-bold transition-all snap-start ${activeTab === 'list' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>📋 Lista</button>
+            <button role="tab" aria-selected={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} className={`flex-1 min-w-[100px] py-3 rounded-xl text-sm font-bold transition-all snap-start ${activeTab === 'calendar' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>📅 Naptár</button>
+            <button role="tab" aria-selected={activeTab === 'public'} onClick={() => setActiveTab('public')} className={`flex-1 min-w-[100px] py-3 rounded-xl text-sm font-bold transition-all snap-start ${activeTab === 'public' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>🌍 Publikus</button>
           </div>
 
           <div className="space-y-4 pb-10">
@@ -499,12 +503,12 @@ export default function DashboardPage() {
                       
                       <div className="flex flex-col gap-1 mb-4">
                         <div className="flex items-center gap-2 text-sm text-zinc-400 font-medium">
-                          <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          <svg className="w-4 h-4 opacity-70" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                           <span>{formatListDate(event.start_date)} — {formatListDate(event.end_date)}</span>
                         </div>
                         {event.location_name && (
                           <div className="flex items-center gap-2 text-sm text-zinc-500">
-                            <span>📍</span>
+                            <span aria-hidden="true">📍</span>
                             <span>{event.location_name} {event.address ? `(${event.address})` : ''}</span>
                           </div>
                         )}
@@ -529,7 +533,7 @@ export default function DashboardPage() {
                             onClick={() => window.open(event.meeting_link, '_blank')}
                             className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-sm font-bold transition-all w-full sm:w-auto"
                           >
-                            <span className="text-lg">📹</span> Meeting indítása
+                            <span className="text-lg" aria-hidden="true">📹</span> Meeting indítása
                           </button>
                         </div>
                       )}
@@ -553,13 +557,13 @@ export default function DashboardPage() {
                 {/* Havi választó */}
                 <div className="bg-[#121212] p-4 md:p-5 rounded-3xl border border-zinc-800/60 shadow-sm">
                   <div className="flex justify-between items-center mb-4">
-                    <button onClick={prevMonth} className="p-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors">
+                    <button onClick={prevMonth} aria-label="Előző hónap" className="p-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors">
                       <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
                     </button>
                     <h2 className="text-base md:text-lg font-bold text-white tracking-wide">
                       {currentCalDate.getFullYear()}. {monthNames[currentCalDate.getMonth()]}
                     </h2>
-                    <button onClick={nextMonth} className="p-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors">
+                    <button onClick={nextMonth} aria-label="Következő hónap" className="p-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors">
                       <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
                     </button>
                   </div>
@@ -582,6 +586,8 @@ export default function DashboardPage() {
                         <div 
                           key={dayNumber} 
                           onClick={() => setSelectedCalDate(thisDate)}
+                          role="button"
+                          aria-label={`${thisDate.toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' })}${isToday ? ', ma' : ''}${isSelected ? ', kiválasztva' : ''}${dayEvents.length > 0 ? ', eseményekkel' : ''}`}
                           className={`h-10 md:h-12 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all border
                             ${isSelected ? 'bg-blue-600 border-blue-500 shadow-md' : 'bg-black/30 hover:bg-zinc-800 border-zinc-800/50'}
                             ${isToday && !isSelected ? 'border-zinc-500 text-blue-400' : ''}
@@ -601,7 +607,7 @@ export default function DashboardPage() {
                 <div className="bg-[#121212] rounded-3xl border border-zinc-800/60 shadow-sm overflow-hidden flex flex-col">
                   <div className="p-4 md:p-5 border-b border-zinc-800/60 bg-zinc-900/30">
                     <h3 className="text-white font-bold text-base flex items-center gap-2">
-                      <span className="text-lg">🕘</span> 
+                      <span className="text-lg" aria-hidden="true">🕘</span> 
                       {selectedCalDate.toLocaleDateString('hu-HU', { month: 'long', day: 'numeric', weekday: 'long'})}
                     </h3>
                   </div>
@@ -648,6 +654,7 @@ export default function DashboardPage() {
                             setActiveTab("list");
                             handleEditClick(ev);
                           }}
+                          aria-label={`${ev.title}, ${start.toLocaleTimeString("hu-HU", { hour: "2-digit", minute: "2-digit" })} órától, ${ev.location_name || 'nincs megadott helyszín'}`}
                           className={`absolute rounded-lg p-2 text-xs cursor-pointer shadow-md border-l-4 transition-all hover:z-50 hover:brightness-110
                             flex flex-col justify-start items-start text-left overflow-hidden
                             ${isMeeting 
@@ -679,7 +686,7 @@ export default function DashboardPage() {
                           {/* HELYSZÍN: Csak ha van elég hely függőlegesen */}
                           {durationMin > 40 && ev.location_name && (
                             <div className="mt-1 text-[10px] opacity-50 truncate w-full flex items-center gap-1">
-                              <span>📍</span> {ev.location_name}
+                              <span aria-hidden="true">📍</span> {ev.location_name}
                             </div>
                           )}
                         </div>
@@ -689,6 +696,7 @@ export default function DashboardPage() {
                       
                       {isSameDay(selectedCalDate, new Date()) && (
                         <div
+                          aria-label="Jelenlegi idő"
                           className="absolute left-12 right-0 border-b-2 border-red-500 z-50 flex items-center shadow-[0_0_10px_rgba(239,68,68,0.5)] pointer-events-none"
                           style={{ top: `${new Date().getHours() * 60 + new Date().getMinutes()}px` }}
                         >
@@ -725,12 +733,12 @@ export default function DashboardPage() {
 
                       <div className="flex flex-col gap-1 mb-3">
                         <div className="flex items-center gap-2 text-sm text-green-400 font-medium">
-                          <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          <svg className="w-4 h-4 opacity-70" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                           <span>{formatListDate(event.start_date)} — {formatListDate(event.end_date)}</span>
                         </div>
                         {event.location_name && (
                           <div className="flex items-center gap-2 text-sm text-zinc-500">
-                            <span>📍</span> {event.location_name}
+                            <span aria-hidden="true">📍</span> {event.location_name}
                           </div>
                         )}
                       </div>
@@ -752,7 +760,7 @@ export default function DashboardPage() {
                             onClick={() => window.open(event.meeting_link, '_blank')}
                             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-sm font-bold transition-all w-full sm:w-auto"
                           >
-                            <span className="text-lg">📹</span> Csatlakozás a meetinghez
+                            <span className="text-lg" aria-hidden="true">📹</span> Csatlakozás a meetinghez
                           </button>
                         </div>
                       )}
@@ -764,10 +772,10 @@ export default function DashboardPage() {
                       {event.owner === user ? (
                         <>
                           <button onClick={() => { handleEditClick(event); setActiveTab('list'); }} className="w-full sm:w-auto px-4 py-2.5 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 border border-yellow-500/20 rounded-xl transition-colors text-sm font-bold text-center">
-                            ✏️ Szerkesztés
+                            <span aria-hidden="true">✏️</span> Szerkesztés
                           </button>
                           <button onClick={() => setDeleteId(event.id)} className="w-full sm:w-auto px-4 py-2.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-colors text-sm font-bold text-center">
-                            🗑️ Törlés
+                            <span aria-hidden="true">🗑️</span> Törlés
                           </button>
                         </>
                       ) : (
@@ -826,7 +834,8 @@ export default function DashboardPage() {
           <div className="bg-[#121212] p-8 rounded-3xl border border-zinc-800 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
             <h3 className="text-2xl font-bold text-white mb-6 text-center">Jelszó módosítása</h3>
             <form onSubmit={handleChangePassword} className="space-y-4">
-              <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} className="w-full p-4 bg-black border border-zinc-800 rounded-xl text-white focus:border-blue-500 focus:outline-none transition-colors" placeholder="Új jelszó..." required />
+              <label htmlFor="new-password-input" className="sr-only">Új jelszó</label>
+              <input id="new-password-input" type="password" value={newPass} onChange={e => setNewPass(e.target.value)} className="w-full p-4 bg-black border border-zinc-800 rounded-xl text-white focus:border-blue-500 focus:outline-none transition-colors" placeholder="Új jelszó..." required />
               <button type="submit" className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition-transform active:scale-95">Mentés</button>
               <button type="button" onClick={() => setShowPasswordModal(false)} className="w-full py-3 text-zinc-500 font-bold rounded-xl hover:bg-zinc-900 transition-colors">Mégse</button>
             </form>
@@ -840,9 +849,12 @@ export default function DashboardPage() {
           <div className="bg-[#121212] p-8 rounded-3xl border border-zinc-800 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
             <h3 className="text-2xl font-bold text-white mb-6 text-center">Új felhasználó</h3>
             <form onSubmit={handleCreateUser} className="space-y-4">
-              <input type="text" value={createUsername} onChange={e => setCreateUsername(e.target.value)} className="w-full p-4 bg-black border border-zinc-800 rounded-xl text-white focus:border-blue-500 focus:outline-none" placeholder="Felhasználónév" required />
-              <input type="password" value={createPassword} onChange={e => setCreatePassword(e.target.value)} className="w-full p-4 bg-black border border-zinc-800 rounded-xl text-white focus:border-blue-500 focus:outline-none" placeholder="Jelszó" required />
-              <select value={createRole} onChange={e => setCreateRole(e.target.value)} className="w-full p-4 bg-black border border-zinc-800 rounded-xl text-white focus:outline-none">
+              <label htmlFor="create-username-input" className="sr-only">Felhasználónév</label>
+              <input id="create-username-input" type="text" value={createUsername} onChange={e => setCreateUsername(e.target.value)} className="w-full p-4 bg-black border border-zinc-800 rounded-xl text-white focus:border-blue-500 focus:outline-none" placeholder="Felhasználónév" required />
+              <label htmlFor="create-password-input" className="sr-only">Jelszó</label>
+              <input id="create-password-input" type="password" value={createPassword} onChange={e => setCreatePassword(e.target.value)} className="w-full p-4 bg-black border border-zinc-800 rounded-xl text-white focus:border-blue-500 focus:outline-none" placeholder="Jelszó" required />
+              <label htmlFor="create-role-select" className="sr-only">Szerepkör</label>
+              <select id="create-role-select" value={createRole} onChange={e => setCreateRole(e.target.value)} className="w-full p-4 bg-black border border-zinc-800 rounded-xl text-white focus:outline-none">
                 <option value="user">User</option><option value="admin">Admin</option>
               </select>
               <button type="submit" className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition-transform active:scale-95">Létrehozás</button>
