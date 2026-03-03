@@ -12,6 +12,7 @@
   "dependencies": {
     "@capacitor-community/sqlite": "^8.0.0",
     "@capacitor/android": "^8.1.0",
+    "@capacitor/app": "^8.0.1",
     "@capacitor/core": "^8.1.0",
     "@google/generative-ai": "^0.24.1",
     "framer-motion": "^12.34.0",
