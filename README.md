@@ -1,6 +1,6 @@
 # Mobil Alkalmazásfejlesztés Projekt - Eseménykezelő
 
-Ez a projekt a 2025/26-os tavaszi félév "Mobilfejlesztési keretrendszerek" kurzusára készült. Az alkalmazás egy offline-first eseményszervező naptár, amely lehetővé teszi események kezelését, kategorizálását és helyszínek hozzárendelését.
+Ez a projekt a 2025/26-os tavaszi félév "Mobil alkalmazásfejlesztés" kurzusára készült. Az alkalmazás egy offline-first eseményszervező naptár, amely lehetővé teszi események kezelését, kategorizálását és helyszínek hozzárendelését.
 
 ## 📱 Technológiák
 A projekt "Hibrid" megközelítéssel készült:
@@ -10,8 +10,15 @@ A projekt "Hibrid" megközelítéssel készült:
 * **Adatbázis:** SQLite (lokális adattárolás a készüléken `@capacitor-community/sqlite`)
 * **Tesztelés:** Vitest
 
+## 🛡️ Biztonság és Hozzáférés
+Az alkalmazás többszintű védelmet és jogosultságkezelést alkalmaz a biztonsági előírásoknak megfelelően:
+* **Védett képernyők (Guards):** A belső funkciók, mint például a **Dashboard** (`/dashboard`), védettek a jogosulatlan hozzáférés ellen. Érvényes bejelentkezési munkamenet hiányában a rendszer automatikusan visszairányítja a felhasználót a bejelentkezési oldalra (`/login`).
+* **Szerepkör-alapú UI:** * **Admin:** Hozzáférés az adminisztrációs funkciókhoz, mint az új felhasználók létrehozása vagy az adatbázis resetelése.
+    * **User:** Saját események kezelése és jelentkezés más eseményekre.
+* **Input validáció:** Kliensoldali ellenőrzés biztosítja az adatok integritását minden űrlapnál (pl. dátumok sorrendje, cím hossza).
+
 ## 🚀 Funkciók
-* **CRUD:** Események létrehozása, listázása, szerkesztése, törlése.
+* **CRUD műveletek:** Események létrehozása, listázása, szerkesztése és törlése megerősítő dialógussal.
 * **Adatmodellek (5 db):**
     1. Users (Felhasználók)
     2. Events (Események)
@@ -19,14 +26,11 @@ A projekt "Hibrid" megközelítéssel készült:
     4. Locations (Helyszínek)
     5. Registrations (Jelentkezések - Kapcsolótábla)
 * **Nézetek:** * 📋 Lista nézet (Részletes kártyák)
-    * 📅 Naptár nézet (Sávos idővonal, mint a Google Calendar)
+    * 📅 Naptár nézet (Sávos idővonal)
     * 🌍 Publikus nézet (Mások eseményeinek megtekintése)
-* **Szerepkörök:** * **Admin:** Új felhasználó létrehozása, Adatbázis resetelése.
-    * **User:** Saját események kezelése, Csatlakozás más eseményekhez.
-* **Meeting integráció:** Automatikus Jitsi meeting link generálás.
+* **Meeting integráció:** Automatikus Jitsi meeting link generálás az eseményekhez.
 
 ## 🛠️ Telepítés és Futtatás
-
 Előfeltétel: Node.js, Android Studio és Java JDK telepítése.
 
 ### 1. Telepítés
