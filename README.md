@@ -12,7 +12,8 @@ A projekt "Hibrid" megközelítéssel készült:
 
 ## 🚀 Funkciók
 * **CRUD:** Események létrehozása, listázása, szerkesztése, törlése.
-* **Adatmodellek (5 db):** 1. Users (Felhasználók)
+* **Adatmodellek (5 db):**
+    1. Users (Felhasználók)
     2. Events (Események)
     3. Categories (Kategóriák)
     4. Locations (Helyszínek)
@@ -28,8 +29,10 @@ A projekt "Hibrid" megközelítéssel készült:
 
 Előfeltétel: Node.js, Android Studio és Java JDK telepítése.
 
-### 1. Függőségek telepítése
-Lépj be a frontend könyvtárba:
+### 1. Telepítés
 ```bash
 cd frontend
 npm install
+npm run build
+npx cap sync
+npx cap open android
