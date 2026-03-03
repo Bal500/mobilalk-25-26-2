@@ -5,17 +5,19 @@ out/
 .next/
 *.log
 frontend/android/.gradle/
+frontend/android/build/
 frontend/android/app/build/
 frontend/android/local.properties
-# IDE beállítások
+frontend/android/captures/
+frontend/android/*.iml
+frontend/android/.cxx/
+frontend/android/.idea/
 .idea/
 *.iml
 .vscode/
 
-# Operációs rendszer fájlok
 Thumbs.db
 .DS_Store
 
-# Build kimenetek (ha vannak a gyökérben)
 dist/
 build/
