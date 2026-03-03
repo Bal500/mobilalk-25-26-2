@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatListDate, getDisplayParticipants, isSameDay } from '../../utils/logic';
 
 import { useAlert } from '@/components/AlertContext';
 import ConfirmModal from '@/components/ConfirmModal';
 import SearchableSelect from "../../components/SearchableSelect";
 
-// --- HELYI ADATBÁZIS FÜGGVÉNYEK IMPORTÁLÁSA ---
+// HELYI ADATBÁZIS FÜGGVÉNYEK IMPORTÁLÁSA
 import { 
-  getEvents, getPublicEvents, saveEvent, deleteLocalEvent, 
+  getEvents, getPublicEvents, saveEvent, deleteLocalEvent, getCategories, getLocations,
   joinLocalEvent, leaveLocalEvent, getAllUsers, createUser, changePassword, resetDatabase
 } from '@/utils/db';
 
@@ -25,6 +26,8 @@ export default function DashboardPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'list' | 'calendar' | 'public'>('list');
   const [publicEvents, setPublicEvents] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
 
   const [editId, setEditId] = useState<number | null>(null);
   const [newTitle, setNewTitle] = useState("");
@@ -34,7 +37,9 @@ export default function DashboardPage() {
   const [newParticipants, setNewParticipants] = useState("");
   const [isMeeting, setIsMeeting] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
-  const [meetingLink, setMeetingLink] = useState(""); 
+  const [meetingLink, setMeetingLink] = useState("");
+  const [categoryId, setCategoryId] = useState<number | string>("");
+  const [locationId, setLocationId] = useState<number | string>("");
 
   const [currentCalDate, setCurrentCalDate] = useState(new Date());
   const [selectedCalDate, setSelectedCalDate] = useState<Date>(new Date());
@@ -56,6 +61,8 @@ export default function DashboardPage() {
   useEffect(() => {
     const storedUser = localStorage.getItem("username");
     const storedRole = localStorage.getItem("role");
+    getCategories().then(setCategories).catch(console.error);
+    getLocations().then(setLocations).catch(console.error);
 
     if (!storedUser) {
       router.push("/login");
@@ -104,7 +111,8 @@ export default function DashboardPage() {
     const payload = {
       id: editId, title: newTitle, start_date: startDate, end_date: endDate,
       description: newDesc, participants: newParticipants, 
-      is_meeting: isMeeting, is_public: isPublic, meeting_link: meetingLink
+      is_meeting: isMeeting, is_public: isPublic, meeting_link: meetingLink,
+      category_id: categoryId, location_id: locationId
     };
 
     const overlaps = events.filter(ev => {
@@ -203,7 +211,6 @@ export default function DashboardPage() {
 
   const handleLogout = () => { localStorage.clear(); router.push("/login"); };
 
-  // ADATBÁZIS TÖRLÉSE
   const handleResetDatabase = async () => {
     setShowResetModal(false);
     await resetDatabase();
@@ -213,8 +220,9 @@ export default function DashboardPage() {
 
   const resetForm = () => {
     setEditId(null); setNewTitle(""); setStartDate(""); setEndDate("");
-    setNewDesc(""); setNewParticipants(""); setIsMeeting(false); setIsPublic(false);
-    setMeetingLink("");
+    newDesc && setNewDesc(""); 
+    setNewParticipants(""); setIsMeeting(false); setIsPublic(false);
+    setMeetingLink(""); setCategoryId(""); setLocationId("");
   };
 
   const handleEditClick = (event: any) => {
@@ -231,22 +239,13 @@ export default function DashboardPage() {
     setIsMeeting(event.is_meeting || false);
     setIsPublic(event.is_public || false);
     setMeetingLink(event.meeting_link || "");
+    setCategoryId(event.category_id || "");
+    setLocationId(event.location_id || "");
     
     window.scrollTo({ top: 0, behavior: 'smooth' }); 
   };
 
-  const formatListDate = (d: string) => { 
-    try { 
-      const dateObj = new Date(d);
-      return dateObj.toLocaleDateString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
-    } catch (e) { return d; } 
-  };
-
-  const getDisplayParticipants = (event: any): string[] => {
-    return event.participants ? event.participants.split(',').map((x:string)=>x.trim()).filter(Boolean) : [];
-  };
-
-  // NAPTÁR FUNKCIÓK
+  // NAPTÁR ÉS DÁTUM SEGÉDEK
   const monthNames = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
   const dayNames = ["H", "K", "Sze", "Cs", "P", "Szo", "V"];
 
@@ -262,21 +261,86 @@ export default function DashboardPage() {
   const daysInMonth = getDaysInMonth(currentCalDate.getFullYear(), currentCalDate.getMonth());
   const firstDay = getFirstDayOfMonth(currentCalDate.getFullYear(), currentCalDate.getMonth());
 
-  const getEventsForDay = (day: number, month: number, year: number) => {
-    return events.filter(ev => {
-      const evStart = new Date(ev.start_date);
-      return evStart.getFullYear() === year && evStart.getMonth() === month && evStart.getDate() === day;
-    });
+  const eventOverlapsDay = (ev: any, targetDate: Date) => {
+    const evStart = new Date(ev.start_date);
+    const evEnd = new Date(ev.end_date);
+    
+    const dayStart = new Date(targetDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(targetDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    return evStart < dayEnd && evEnd > dayStart;
   };
 
-  const isSameDay = (d1: Date, d2: Date) => 
-    d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+  const getEventsForDay = (day: number, month: number, year: number) => {
+    const targetDate = new Date(year, month, day);
+    return events.filter(ev => eventOverlapsDay(ev, targetDate));
+  };
 
-  const selectedDayEvents = events.filter(ev => {
-    const evStart = new Date(ev.start_date);
-    return isSameDay(evStart, selectedCalDate);
-  });
+  const selectedDayEvents = events.filter(ev => eventOverlapsDay(ev, selectedCalDate));
 
+  const checkOverlap = (ev1: any, ev2: any) => {
+    const start1 = new Date(ev1.start_date).getTime();
+    const end1 = new Date(ev1.end_date).getTime();
+    const start2 = new Date(ev2.start_date).getTime();
+    const end2 = new Date(ev2.end_date).getTime();
+    return start1 < end2 && start2 < end1;
+  };
+
+  const getLayoutEvents = () => {
+    if (!selectedDayEvents || selectedDayEvents.length === 0) return [];
+  
+    const sorted = [...selectedDayEvents].sort((a, b) => {
+      const startA = new Date(a.start_date).getTime();
+      const startB = new Date(b.start_date).getTime();
+      if (startA !== startB) return startA - startB;
+      return new Date(b.end_date).getTime() - new Date(b.start_date).getTime() -
+            (new Date(a.end_date).getTime() - new Date(a.start_date).getTime());
+    });
+  
+    const clusters: any[][] = [];
+  
+    sorted.forEach(event => {
+      let cluster = clusters.find(c => c.some(ce => 
+        new Date(event.start_date) < new Date(ce.end_date) &&
+        new Date(ce.start_date) < new Date(event.end_date)
+      ));
+      if (!cluster) {
+        cluster = [];
+        clusters.push(cluster);
+      }
+      cluster.push(event);
+    });
+  
+    const result: any[] = [];
+    clusters.forEach(cluster => {
+      const columns: any[][] = [];
+      cluster.forEach(event => {
+        let colIdx = 0;
+        while (columns[colIdx]?.some(ce => 
+          new Date(event.start_date) < new Date(ce.end_date) &&
+          new Date(ce.start_date) < new Date(event.end_date)
+        )) {
+          colIdx++;
+        }
+        if (!columns[colIdx]) columns[colIdx] = [];
+        columns[colIdx].push(event);
+        event.colIndex = colIdx;
+      });
+      
+      cluster.forEach(event => {
+        event.totalCols = columns.length;
+        result.push(event);
+      });
+    });
+  
+    return result;
+  };
+
+  const calendarEventsToRender = activeTab === 'calendar' ? getLayoutEvents() : [];
+
+  // RENDER
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-gray-100 font-sans p-4 md:p-8 relative">
       
@@ -305,7 +369,7 @@ export default function DashboardPage() {
                     <span>👤</span> Új felhasználó
                   </button>
                   <button onClick={() => { setShowResetModal(true); setIsMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-sm text-red-500 hover:bg-zinc-800 transition-colors border-b border-zinc-800/50 font-bold flex items-center gap-2">
-                    <span>🔥</span> Adatbázis nullázása !!!DEMO FEATURE!!!
+                    <span>🔥</span> Adatbázis nullázása
                   </button>
                 </>
               )}
@@ -323,7 +387,7 @@ export default function DashboardPage() {
       {/* FŐ TARTALOM */}
       <main className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
         
-        {/* ŰRLAP */}
+        {/* 1. OSZLOP: ŰRLAP */}
         <div className="bg-[#121212] p-6 rounded-3xl border border-zinc-800/60 shadow-xl h-fit">
           <div className="mb-6 pb-6 border-b border-zinc-800/60">
             <SearchableSelect label="Más naptárának megtekintése" placeholder="Keresés..." options={allUsers.filter(u => u !== user)} value={viewedUser} onChange={(val) => setViewedUser(val)} />
@@ -353,6 +417,34 @@ export default function DashboardPage() {
               
               <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} className="w-full p-3.5 bg-black border border-zinc-800 rounded-xl text-white h-24 text-sm focus:border-blue-500 focus:outline-none transition-colors resize-none" placeholder="Leírás..." />
               
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1 text-zinc-300">Kategória</label>
+                <select
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  className="w-full p-3.5 bg-black border border-zinc-800 rounded-xl text-white text-sm focus:border-blue-500 focus:outline-none transition-colors"
+                >
+                  <option value="">-- Válassz kategóriát --</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1 text-zinc-300">Helyszín</label>
+                <select
+                  value={locationId}
+                  onChange={(e) => setLocationId(e.target.value)}
+                  className="w-full p-3.5 bg-black border border-zinc-800 rounded-xl text-white text-sm focus:border-blue-500 focus:outline-none transition-colors"
+                >
+                  <option value="">-- Válassz helyszínt --</option>
+                  {locations.map((loc) => (
+                    <option key={loc.id} value={loc.id}>{loc.name} ({loc.capacity} fő)</option>
+                  ))}
+                </select>
+              </div>
+
               <div className="flex gap-3 pt-3">
                 <button type="submit" className={`flex-1 py-3.5 font-bold rounded-xl text-white transition-all shadow-md active:scale-[0.98] ${editId ? 'bg-yellow-600 hover:bg-yellow-500' : 'bg-blue-600 hover:bg-blue-500'}`}>
                   {editId ? "Mentés" : "Hozzáadás"}
@@ -370,7 +462,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* LISTA OSZLOP */}
+        {/* 2. OSZLOP: LISTA / NAPTÁR / PUBLIKUS */}
         <div className="xl:col-span-2 flex flex-col gap-6">
           
           {/* TAB VÁLTÓ */}
@@ -380,22 +472,42 @@ export default function DashboardPage() {
             <button onClick={() => setActiveTab('public')} className={`flex-1 min-w-[100px] py-3 rounded-xl text-sm font-bold transition-all snap-start ${activeTab === 'public' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>🌍 Publikus</button>
           </div>
 
-          {/* LISTA TARTALOM */}
           <div className="space-y-4 pb-10">
+            
+            {/* LISTA NÉZET */}
             {activeTab === 'list' && (
               <>
                 {events.length === 0 && <div className="text-center py-16 text-zinc-500 border border-dashed border-zinc-800/60 rounded-3xl bg-[#121212]/50">Nincs megjeleníthető esemény.</div>}
                 {events.map((event) => (
-                  <div key={event.id} className="bg-[#121212] border border-zinc-800/60 hover:border-zinc-700 transition-colors p-5 md:p-6 rounded-3xl shadow-sm flex flex-col md:flex-row gap-5 justify-between">
-                    <div className="flex-1">
+                  <div key={event.id} className="bg-[#121212] border border-zinc-800/60 hover:border-zinc-700 transition-colors p-5 md:p-6 rounded-3xl shadow-sm flex flex-col md:flex-row gap-5 justify-between relative overflow-hidden">
+                    {event.category_color && (
+                      <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: event.category_color }}></div>
+                    )}
+                    <div className="flex-1 pl-2"> 
                       <div className="flex flex-wrap items-center gap-3 mb-2.5">
                         <h3 className="text-lg md:text-xl font-bold text-white tracking-tight">{event.title}</h3>
+                        {event.category_name && (
+                          <span 
+                            className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white border border-white/10 shadow-sm"
+                            style={{ backgroundColor: event.category_color || '#3b82f6' }}
+                          >
+                            {event.category_name}
+                          </span>
+                        )}
                         {event.is_public && <span className="px-2.5 py-1 bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg text-xs font-bold tracking-wide">PUBLIKUS</span>}
                       </div>
                       
-                      <div className="flex items-center gap-2 text-sm text-zinc-400 mb-4 font-medium">
-                        <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        <span>{formatListDate(event.start_date)} — {formatListDate(event.end_date)}</span>
+                      <div className="flex flex-col gap-1 mb-4">
+                        <div className="flex items-center gap-2 text-sm text-zinc-400 font-medium">
+                          <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          <span>{formatListDate(event.start_date)} — {formatListDate(event.end_date)}</span>
+                        </div>
+                        {event.location_name && (
+                          <div className="flex items-center gap-2 text-sm text-zinc-500">
+                            <span>📍</span>
+                            <span>{event.location_name} {event.address ? `(${event.address})` : ''}</span>
+                          </div>
+                        )}
                       </div>
                       
                       {event.description && <p className="text-zinc-400 text-sm mb-5 bg-black/40 p-3.5 rounded-xl leading-relaxed border border-zinc-800/50">{event.description}</p>}
@@ -403,7 +515,7 @@ export default function DashboardPage() {
                       <div className="flex items-center gap-3 flex-wrap mt-2">
                         <span className="text-xs font-bold text-zinc-600 uppercase tracking-wider">Résztvevők:</span>
                         <div className="flex flex-wrap gap-2">
-                          {getDisplayParticipants(event).map((p: string, i: number) => (
+                          {getDisplayParticipants(event.participants).map((p: string, i: number) => (
                             <span key={i} className={`px-2.5 py-1 rounded-md text-xs font-bold ${p === event.owner ? 'bg-zinc-800 text-white border border-zinc-700' : 'bg-black text-zinc-400 border border-zinc-800'}`}>
                               {p} {p === event.owner && <span className="text-zinc-500 ml-1 font-normal">(Szervező)</span>}
                             </span>
@@ -411,7 +523,6 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      {/* MEETING GOMB */}
                       {event.is_meeting && event.meeting_link && (
                         <div className="mt-5">
                           <button 
@@ -422,9 +533,8 @@ export default function DashboardPage() {
                           </button>
                         </div>
                       )}
-
                     </div>
-                    
+
                     {event.owner === user && (
                       <div className="flex flex-row md:flex-col gap-2 shrink-0 mt-4 md:mt-0 border-t border-zinc-800/50 pt-4 md:border-none md:pt-0">
                         <button onClick={() => handleEditClick(event)} className="flex-1 md:flex-none px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl transition-colors text-sm font-bold text-center">Szerkesztés</button>
@@ -436,11 +546,11 @@ export default function DashboardPage() {
               </>
             )}
 
-            {/* ----------------- GOOGLE CALENDAR SÁVOS NAPTÁR NÉZET ----------------- */}
+            {/* NAPTÁR NÉZET */}
             {activeTab === 'calendar' && (
               <div className="flex flex-col gap-4 animate-in fade-in duration-300">
                 
-                {/* 1. Havi választó Grid (Kicsinyítve a képernyő tetején) */}
+                {/* Havi választó */}
                 <div className="bg-[#121212] p-4 md:p-5 rounded-3xl border border-zinc-800/60 shadow-sm">
                   <div className="flex justify-between items-center mb-4">
                     <button onClick={prevMonth} className="p-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors">
@@ -487,10 +597,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* 2. A Napi Idővonal (Timeline - A SÁVOK) */}
+                {/* Timeline */}
                 <div className="bg-[#121212] rounded-3xl border border-zinc-800/60 shadow-sm overflow-hidden flex flex-col">
-                  
-                  {/* Timeline Fejléc */}
                   <div className="p-4 md:p-5 border-b border-zinc-800/60 bg-zinc-900/30">
                     <h3 className="text-white font-bold text-base flex items-center gap-2">
                       <span className="text-lg">🕘</span> 
@@ -498,12 +606,8 @@ export default function DashboardPage() {
                     </h3>
                   </div>
 
-                  {/* Görgethető Idővonal (24 óra) */}
                   <div className="relative h-[60vh] md:h-[500px] overflow-y-auto hide-scrollbar" id="timeline-container">
-                    {/* A belső tartalom magassága: 24 óra * 60 pixel = 1440px */}
                     <div className="relative h-[1440px] w-full bg-[#121212]">
-                      
-                      {/* Vízszintes óra vonalak */}
                       {Array.from({ length: 24 }).map((_, i) => (
                         <div key={`line-${i}`} className="absolute w-full flex items-start border-b border-zinc-800/50" style={{ top: `${i * 60}px`, height: '60px' }}>
                           <span className="text-[10px] md:text-xs text-zinc-500 w-12 text-right pr-2 -mt-[9px] bg-[#121212] relative z-10 font-medium">
@@ -512,50 +616,80 @@ export default function DashboardPage() {
                         </div>
                       ))}
 
-                      {/* Események sávjai */}
-                      <div className="absolute top-0 left-12 right-0 bottom-0">
-                        {selectedDayEvents.map((ev, idx) => {
-                          const start = new Date(ev.start_date);
-                          const end = new Date(ev.end_date);
-                          const dayStart = new Date(selectedCalDate); dayStart.setHours(0,0,0,0);
-                          const dayEnd = new Date(selectedCalDate); dayEnd.setHours(23,59,59,999);
+                  <div className="absolute top-0 left-12 right-0 bottom-0">
+                    {calendarEventsToRender.map((ev) => {
+                      const start = new Date(ev.start_date);
+                      const end = new Date(ev.end_date);
+                      const dayStart = new Date(selectedCalDate);
+                      dayStart.setHours(0, 0, 0, 0);
+                      const dayEnd = new Date(selectedCalDate);
+                      dayEnd.setHours(23, 59, 59, 999);
 
-                          const actualStart = start < dayStart ? dayStart : start;
-                          const actualEnd = end > dayEnd ? dayEnd : end;
+                      const actualStart = start < dayStart ? dayStart : start;
+                      const actualEnd = end > dayEnd ? dayEnd : end;
 
-                          const startMin = actualStart.getHours() * 60 + actualStart.getMinutes();
-                          const durationMin = Math.max((actualEnd.getTime() - actualStart.getTime()) / 60000, 20);
+                      const startMin = actualStart.getHours() * 60 + actualStart.getMinutes();
+                      const durationMin = Math.max((actualEnd.getTime() - actualStart.getTime()) / 60000, 25);
 
-                          const leftOffset = (idx % 4) * 8; 
+                      // OSZLOP ALAPÚ SZÁMÍTÁS
+                      const totalCols = ev.totalCols || 1;
+                      const colIndex = ev.colIndex || 0;
 
-                          return (
-                            <div
-                              key={ev.id}
-                              onClick={() => { setActiveTab('list'); handleEditClick(ev); }}
-                              className={`absolute rounded-xl p-2 text-xs overflow-hidden cursor-pointer shadow-lg backdrop-blur-md border transition-all hover:z-[60] hover:scale-[1.02]
-                                ${ev.is_meeting ? 'bg-red-500/80 border-red-500/50 text-white' : 'bg-blue-600/80 border-blue-500/50 text-white'}
-                              `}
-                              style={{
-                                top: `${startMin}px`,
-                                height: `${durationMin}px`,
-                                left: `${4 + leftOffset}px`,
-                                right: '8px',
-                                zIndex: 20 + idx
-                              }}
-                            >
-                              <div className="font-bold text-sm truncate leading-tight">{ev.title}</div>
-                              <div className="text-white/80 font-medium mt-0.5 text-[10px] truncate">
-                                {start.toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'})} - {end.toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'})}
-                              </div>
+                      const widthPct = 100 / totalCols;
+                      const leftPct = colIndex * widthPct;
+
+                      const isMeeting = ev.is_meeting;
+
+                      return (
+                        <div
+                          key={ev.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveTab("list");
+                            handleEditClick(ev);
+                          }}
+                          className={`absolute rounded-lg p-2 text-xs cursor-pointer shadow-md border-l-4 transition-all hover:z-50 hover:brightness-110
+                            flex flex-col justify-start items-start text-left overflow-hidden
+                            ${isMeeting 
+                              ? "bg-[#3d1a1a] border-l-red-500 border-red-900/50 text-red-100" 
+                              : "bg-[#1a263d] border-l-blue-500 border-blue-900/50 text-blue-100"}`}
+                          style={{
+                            top: `${startMin + 4}px`,
+                            height: `${durationMin - 8}px`,
+                            left: `${leftPct}%`,
+                            width: `calc(${widthPct}% - 2px)`,
+                            zIndex: 10 + colIndex,
+                            minHeight: '26px'
+                          }}
+                        >
+                          {/* CÍM ÉS IDŐ EGY SORBAN */}
+                          <div className="flex flex-wrap items-center gap-x-2 w-full">
+                            <span className="font-bold truncate max-w-full">
+                              {ev.title}
+                            </span>
+
+                            {/* Időpont: Csak ha van elég hely vízszintesen */}
+                            {widthPct > 30 && (
+                              <span className="text-[10px] opacity-60 font-mono shrink-0">
+                                {start.toLocaleTimeString("hu-HU", { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* HELYSZÍN: Csak ha van elég hely függőlegesen */}
+                          {durationMin > 40 && ev.location_name && (
+                            <div className="mt-1 text-[10px] opacity-50 truncate w-full flex items-center gap-1">
+                              <span>📍</span> {ev.location_name}
                             </div>
-                          )
-                        })}
-                      </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                       
-                      {/* Jelenlegi Idő Piros Vonala (Csak a mai napon mutatjuk) */}
                       {isSameDay(selectedCalDate, new Date()) && (
                         <div
-                          className="absolute left-12 right-0 border-b-2 border-red-500 z-50 flex items-center shadow-[0_0_10px_rgba(239,68,68,0.5)]"
+                          className="absolute left-12 right-0 border-b-2 border-red-500 z-50 flex items-center shadow-[0_0_10px_rgba(239,68,68,0.5)] pointer-events-none"
                           style={{ top: `${new Date().getHours() * 60 + new Date().getMinutes()}px` }}
                         >
                           <div className="w-2.5 h-2.5 rounded-full bg-red-500 absolute -left-1.5 shadow-sm"></div>
@@ -567,22 +701,44 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* ----------------- PUBLIKUS NÉZET ----------------- */}
+            {/* PUBLIKUS NÉZET */}
             {activeTab === 'public' && (
               <>
                 {publicEvents.length === 0 && <div className="text-center py-16 text-zinc-500 border border-dashed border-zinc-800/60 rounded-3xl bg-[#121212]/50">Nincs publikus esemény.</div>}
                 {publicEvents.map((event) => (
-                  <div key={event.id} className="bg-[#121212] border border-zinc-800/60 hover:border-zinc-700 transition-colors p-5 md:p-6 rounded-3xl shadow-sm flex flex-col md:flex-row gap-5 justify-between md:items-center">
-                    <div className="flex-1">
-                      <h3 className="text-lg md:text-xl font-bold text-white tracking-tight mb-2">{event.title}</h3>
-                      <div className="flex items-center gap-2 text-sm text-green-400 font-medium mb-3">
-                        <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        <span>{formatListDate(event.start_date)} — {formatListDate(event.end_date)}</span>
+                  <div key={event.id} className="bg-[#121212] border border-zinc-800/60 hover:border-zinc-700 transition-colors p-5 md:p-6 rounded-3xl shadow-sm flex flex-col md:flex-row gap-5 justify-between md:items-center relative overflow-hidden">
+                    {event.category_color && (
+                      <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: event.category_color }}></div>
+                    )}
+                    <div className="flex-1 pl-2">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg md:text-xl font-bold text-white tracking-tight">{event.title}</h3>
+                        {event.category_name && (
+                            <span 
+                              className="px-2 py-0.5 rounded text-[10px] font-bold uppercase text-white"
+                              style={{ backgroundColor: event.category_color || '#3b82f6' }}
+                            >
+                              {event.category_name}
+                            </span>
+                          )}
                       </div>
+
+                      <div className="flex flex-col gap-1 mb-3">
+                        <div className="flex items-center gap-2 text-sm text-green-400 font-medium">
+                          <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          <span>{formatListDate(event.start_date)} — {formatListDate(event.end_date)}</span>
+                        </div>
+                        {event.location_name && (
+                          <div className="flex items-center gap-2 text-sm text-zinc-500">
+                            <span>📍</span> {event.location_name}
+                          </div>
+                        )}
+                      </div>
+
                       <div className="flex items-center gap-2 flex-wrap mb-4">
                           <span className="text-xs font-bold text-zinc-600 uppercase tracking-wider">Résztvevők:</span>
                           <div className="flex flex-wrap gap-2">
-                            {getDisplayParticipants(event).map((p: string, i: number) => (
+                            {getDisplayParticipants(event.participants).map((p: string, i: number) => (
                               <span key={i} className={`px-2.5 py-1 rounded-md text-xs font-bold ${p === event.owner ? 'bg-zinc-800 text-white border border-zinc-700' : 'bg-black text-zinc-400 border border-zinc-800'}`}>
                                 {p} {p === event.owner && <span className="text-zinc-500 ml-1 font-normal">(Szervező)</span>}
                               </span>
@@ -590,8 +746,7 @@ export default function DashboardPage() {
                           </div>
                       </div>
 
-                      {/* MEETING GOMB A PUBLIKUS FÜLÖN */}
-                      {event.is_meeting && event.meeting_link && getDisplayParticipants(event).includes(user || "") && (
+                      {event.is_meeting && event.meeting_link && getDisplayParticipants(event.participants).includes(user || "") && (
                         <div className="mt-2">
                           <button 
                             onClick={() => window.open(event.meeting_link, '_blank')}
@@ -606,7 +761,7 @@ export default function DashboardPage() {
                     
                     <div className="flex flex-col sm:flex-row gap-2 shrink-0 border-t border-zinc-800/50 pt-4 md:border-none md:pt-0">
                       
-                      {event.owner === user && (
+                      {event.owner === user ? (
                         <>
                           <button onClick={() => { handleEditClick(event); setActiveTab('list'); }} className="w-full sm:w-auto px-4 py-2.5 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 border border-yellow-500/20 rounded-xl transition-colors text-sm font-bold text-center">
                             ✏️ Szerkesztés
@@ -615,16 +770,16 @@ export default function DashboardPage() {
                             🗑️ Törlés
                           </button>
                         </>
-                      )}
-
-                      {getDisplayParticipants(event).includes(user || "") ? (
-                        <button onClick={() => leaveEvent(event.id)} className="w-full sm:w-auto px-6 py-2.5 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-bold rounded-xl transition-colors text-sm text-center">
-                          - Leadás
-                        </button>
                       ) : (
-                        <button onClick={() => joinEvent(event.id)} className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors shadow-md text-sm text-center">
-                          + Csatlakozás
-                        </button>
+                        getDisplayParticipants(event.participants).includes(user || "") ? (
+                          <button onClick={() => leaveEvent(event.id)} className="w-full sm:w-auto px-6 py-2.5 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-bold rounded-xl transition-colors text-sm text-center border border-zinc-700">
+                            - Leadás
+                          </button>
+                        ) : (
+                          <button onClick={() => joinEvent(event.id)} className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-900/20 text-sm text-center">
+                            + Csatlakozás
+                          </button>
+                        )
                       )}
 
                     </div>

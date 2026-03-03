@@ -1,9 +1,21 @@
+.idea/
+.vscode/
 node_modules/
-.next/
 out/
-.DS_Store
+.next/
 *.log
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/android/local.properties
+# IDE beállítások
+.idea/
+*.iml
+.vscode/
 
-android/build/
-android/.gradle/
-android/app/build/
+# Operációs rendszer fájlok
+Thumbs.db
+.DS_Store
+
+# Build kimenetek (ha vannak a gyökérben)
+dist/
+build/
