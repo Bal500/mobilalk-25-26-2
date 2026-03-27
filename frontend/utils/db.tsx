@@ -3,6 +3,14 @@ import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacito
 const sqlite = new SQLiteConnection(CapacitorSQLite);
 let db: SQLiteDBConnection;
 
+async function hashPassword(password: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
+
 export async function setupDatabase() {
   db = await sqlite.createConnection("ucc_db", false, "no-encryption", 1, false);
   
@@ -91,7 +99,8 @@ async function seedData() {
   // Admin létrehozása
   const adminCheck = await db.query("SELECT * FROM users WHERE username = 'admin'");
   if (!adminCheck.values || adminCheck.values.length === 0) {
-    await db.run("INSERT INTO users (username, password, role) VALUES ('admin', 'admin', 'admin')");
+    const hashedAdminPw = await hashPassword('admin'); // <-- TITKOSÍTÁS
+    await db.run("INSERT INTO users (username, password, role) VALUES ('admin', ?, 'admin')", [hashedAdminPw]);
   }
 
   // Kategóriák feltöltése
@@ -113,7 +122,11 @@ async function seedData() {
 
 export async function loginUser(username: string, password: string) {
   if (!db) await setupDatabase();
-  const res = await db.query("SELECT * FROM users WHERE username = ? AND password = ?", [username, password]);
+  
+  const hashedPassword = await hashPassword(password);
+  
+  const res = await db.query("SELECT * FROM users WHERE username = ? AND password = ?", [username, hashedPassword]);
+  
   if (res.values && res.values.length > 0) {
     return res.values[0];
   }
@@ -123,7 +136,8 @@ export async function loginUser(username: string, password: string) {
 export async function createUser(username: string, password: string, role: string) {
   if (!db) await setupDatabase();
   try {
-    await db.run("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", [username, password, role]);
+    const hashedPassword = await hashPassword(password);
+    await db.run("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", [username, hashedPassword, role]);
   } catch (e) {
     throw new Error("Ez a felhasználónév már létezik!");
   }
@@ -149,7 +163,8 @@ export async function getLocations() {
 
 export async function changePassword(username: string, newPassword: string) {
   if (!db) await setupDatabase();
-  await db.run("UPDATE users SET password = ? WHERE username = ?", [newPassword, username]);
+  const hashedNewPassword = await hashPassword(newPassword);
+  await db.run("UPDATE users SET password = ? WHERE username = ?", [hashedNewPassword, username]);
 }
 
 export async function getEvents(currentUser: string, viewedUser?: string | null) {

@@ -446,7 +446,7 @@ export default function DashboardPage() {
           <div className="space-y-4 pb-10">
             <div id="panel-list" role="tabpanel" aria-labelledby="tab-list" className={activeTab === 'list' ? 'block' : 'hidden'}>
               {activeTab === 'list' && (
-                <>
+                <div className="space-y-4">
                   {events.length === 0 && <div className="text-center py-16 text-zinc-500 border border-dashed border-zinc-800/60 rounded-3xl bg-[#121212]/50">Nincs megjeleníthető esemény.</div>}
                   {events.map((event) => (
                     <div key={event.id} className="bg-[#121212] border border-zinc-800/60 hover:border-zinc-700 transition-colors p-5 md:p-6 rounded-3xl shadow-sm flex flex-col md:flex-row gap-5 justify-between relative overflow-hidden">
@@ -490,7 +490,7 @@ export default function DashboardPage() {
                       )}
                     </div>
                   ))}
-                </>
+                </div>
               )}
             </div>
 
